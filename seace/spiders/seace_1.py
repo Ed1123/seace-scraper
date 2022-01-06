@@ -1,6 +1,7 @@
 import scrapy
 from scrapy.shell import inspect_response
 from scrapy_selenium import SeleniumRequest
+from selenium import webdriver
 
 
 class Seace1Spider(scrapy.Spider):
@@ -13,9 +14,13 @@ class Seace1Spider(scrapy.Spider):
     def parse(self, response: SeleniumRequest):
         driver = response.request.meta['driver']
         # inspect_response(response, self)
+        captcha_img = self.get_captcha(driver)
+        with open('captcha_test.png', 'wb') as f:
+            f.write(captcha_img)
+        driver.save_screenshot('website.png')
+
+    def get_captcha(self, driver: webdriver):
         captcha_img = driver.find_element_by_xpath(
             '//*[@id="tbBuscador:idFormBuscarProceso:captchaImg"]'
         )
-        with open('captcha_test.png', 'wb') as f:
-            f.write(captcha_img.screenshot_as_png)
-        driver.save_screenshot('website.png')
+        return captcha_img.screenshot_as_png
