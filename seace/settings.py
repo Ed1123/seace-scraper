@@ -6,6 +6,12 @@
 #     https://docs.scrapy.org/en/latest/topics/settings.html
 #     https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
+import os
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 BOT_NAME = 'seace'
 
@@ -93,4 +99,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 SELENIUM_DRIVER_NAME = 'chrome'
 SELENIUM_DRIVER_EXECUTABLE_PATH = ChromeDriverManager().install()
-SELENIUM_DRIVER_ARGUMENTS = ['--headless']
+if os.getenv('TEST_MODE'):
+    SELENIUM_DRIVER_ARGUMENTS = []
+else:
+    SELENIUM_DRIVER_ARGUMENTS = ['--headless']
