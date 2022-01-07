@@ -4,6 +4,11 @@ from scrapy_selenium import SeleniumRequest
 from selenium import webdriver
 
 
+def solve_captcha(captcha: bytes) -> str:
+    '''Gets a captcha as bytes and returns the solution as a string'''
+    pass
+
+
 class Seace1Spider(scrapy.Spider):
     name = 'seace_1'
 
@@ -19,8 +24,10 @@ class Seace1Spider(scrapy.Spider):
             f.write(captcha_img)
         driver.save_screenshot('website.png')
 
-    def get_captcha(self, driver: webdriver):
+    def get_captcha(self, driver: webdriver) -> bytes:
         captcha_img = driver.find_element_by_xpath(
             '//*[@id="tbBuscador:idFormBuscarProceso:captchaImg"]'
-        )
-        return captcha_img.screenshot_as_png
+        ).screenshot_as_png
+        return captcha_img
+
+    # def input_field(self, driver: webdriver, )
