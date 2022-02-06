@@ -5,6 +5,11 @@ import scrapy
 from scrapy.shell import inspect_response
 from scrapy_selenium import SeleniumRequest
 from selenium import webdriver
+from selenium.common.exceptions import StaleElementReferenceException
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 
 
 def solve_captcha(captcha: bytes) -> str:
@@ -22,17 +27,19 @@ class Seace1Spider(scrapy.Spider):
     def parse(self, response):
         self.driver = response.request.meta['driver']
 
+        # Wait a couple of seconds to load the website
+        # sleep(5)
+
         # Click "Búsqueda avanzada"
-        self.click_element('//*[@id="tbBuscador:idFormBuscarProceso:j_idt85"]/legend')
-        # Wait one second to load the drop down
-        # sleep(1)
+        self.click_element('//fieldset/legend')
+        sleep(1)  # Wait one second to load the drop down
 
         # Enter dates
         self.fill_date(datetime(2022, 1, 6))
 
         # Solve captcha
         captcha_img = self.get_captcha()
-        input()
+        solve_captcha(captcha_img)
 
         # Click the "Buscar" button
         self.click_element('//*[@id="tbBuscador:idFormBuscarProceso:btnBuscarSel"]')
@@ -48,10 +55,16 @@ class Seace1Spider(scrapy.Spider):
         ).screenshot_as_png
         return captcha_img
 
-    def fill_box(self, xpath: str, input: str) -> None:
+    def fill_box(self, xpath: str, input_str: str) -> None:
         '''Fills an html element with the given input data'''
-        box = self.driver.find_element_by_xpath(xpath)
-        box.send_keys(input)
+        wait = WebDriverWait(
+            self.driver,
+            10,
+            poll_frequency=1,
+            ignored_exceptions=[StaleElementReferenceException],
+        )
+        box = wait.until(EC.element_to_be_clickable((By.XPATH, xpath)))
+        box.send_keys(input_str)
 
     def click_element(self, xpath: str) -> None:
         self.driver.find_element_by_xpath(xpath).click()
