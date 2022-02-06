@@ -4,17 +4,15 @@ from time import sleep
 import scrapy
 from scrapy.shell import inspect_response
 from scrapy_selenium import SeleniumRequest
-from selenium import webdriver
 from selenium.common.exceptions import StaleElementReferenceException
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 
 def solve_captcha(captcha: bytes) -> str:
     '''Gets a captcha as bytes and returns the solution as a string'''
-    pass
+    return input('Solve the captcha manually and paste it here: ')
 
 
 class Seace1Spider(scrapy.Spider):
@@ -39,14 +37,17 @@ class Seace1Spider(scrapy.Spider):
 
         # Solve captcha
         captcha_img = self.get_captcha()
-        solve_captcha(captcha_img)
+        captcha_str = solve_captcha(captcha_img)
+        self.fill_box(
+            '//*[@id="tbBuscador:idFormBuscarProceso:codigoCaptcha"]', captcha_str
+        )
 
         # Click the "Buscar" button
         self.click_element('//*[@id="tbBuscador:idFormBuscarProceso:btnBuscarSel"]')
 
         # For testing
-        with open('captcha_test.png', 'wb') as f:
-            f.write(captcha_img)
+        # with open('captcha_test.png', 'wb') as f:
+        #     f.write(captcha_img)
         self.driver.save_screenshot('website.png')
 
     def get_captcha(self) -> bytes:
