@@ -104,26 +104,27 @@ class Seace1Spider(scrapy.Spider):
                 )
 
                 # Checking for the "bad captcha" message box
-                WebDriverWait(self.driver, 1).until(
+                message_box = WebDriverWait(self.driver, 1).until(
                     EC.visibility_of_element_located(
                         (By.XPATH, '//*[@id="frmMesajes:gPrincipal_container"]/div')
                     )
                 )
-                # Wait for the message box to disappear
-                sleep(7)
                 # Close message box for next try
-                # close_message_box = WebDriverWait(self.driver, 2).until(
-                #     EC.visibility_of_element_located(
-                #         (
-                #             By.XPATH,
-                #             '//*[@id="frmMesajes:gPrincipal_container"]/div/div/div[1]',
-                #         )
-                #     )
-                # )
-                # close_message_box = self.driver.find_element_by_xpath(
-                #     '//*[@id="frmMesajes:gPrincipal_container"]/div/div/div[1]'
-                # )
-                # ActionChains(self.driver).move_to_element(close_message_box).click()
+                ActionChains(self.driver).move_to_element(
+                    message_box
+                ).perform()  # Hover to make the 'x' visible
+                try:
+                    WebDriverWait(self.driver, 7).until(
+                        EC.visibility_of_element_located(
+                            (
+                                By.XPATH,
+                                '//*[@id="frmMesajes:gPrincipal_container"]/div/div/div[1]',
+                            )
+                        )
+                    ).click()  # Click the 'x'
+                except TimeoutException:
+                    pass
+
                 # If there is the message, try to solve captcha again
             except TimeoutException:
                 # Else, the catpcha is solved and just break the infinite loop
