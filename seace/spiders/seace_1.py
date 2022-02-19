@@ -54,7 +54,8 @@ class Seace1Spider(scrapy.Spider):
 
         self.fill_catpcha_and_search()
 
-        self.driver.save_screenshot('website.png')
+        # Click export to download the file
+        self.click_element('//*[@id="tbBuscador:idFormBuscarProceso:btnExportar"]')
 
     def get_captcha(self) -> bytes:
         captcha_img = self.driver.find_element_by_xpath(
