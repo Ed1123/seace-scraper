@@ -1,8 +1,10 @@
+import os
 from datetime import datetime
 from time import sleep
 
 import scrapy
-from scrapy_selenium import SeleniumRequest
+from scrapy.utils.conf import closest_scrapy_cfg
+from selenium import webdriver
 from selenium.common.exceptions import (
     ElementNotInteractableException,
     StaleElementReferenceException,
@@ -12,6 +14,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+from webdriver_manager.chrome import ChromeDriverManager
 
 
 def solve_captcha(captcha: bytes) -> str:
@@ -27,15 +30,21 @@ class Seace1Spider(scrapy.Spider):
     name = 'seace_1'
 
     def start_requests(self):
-        url = 'https://prodapp2.seace.gob.pe/seacebus-uiwd-pub/buscadorPublico/buscadorPublico.xhtml'
-        yield SeleniumRequest(url=url, callback=self.parse)
+        options = webdriver.ChromeOptions()
+        if not os.getenv('TEST_MODE'):
+            options.add_argument('headless')
+        download_path = os.path.join(os.path.dirname(closest_scrapy_cfg()), 'output')
+        prefs = {'download.default_directory': download_path}
+        options.add_experimental_option('prefs', prefs)
+        self.driver = webdriver.Chrome(
+            executable_path=ChromeDriverManager().install(), chrome_options=options
+        )
+        self.driver.get(
+            'https://prodapp2.seace.gob.pe/seacebus-uiwd-pub/buscadorPublico/buscadorPublico.xhtml'
+        )
+        yield scrapy.Request(url='http://quotes.toscrape.com')
 
     def parse(self, response):
-        self.driver = response.request.meta['driver']
-
-        # Wait a couple of seconds to load the website
-        # sleep(5)
-
         # Click "Búsqueda avanzada"
         self.click_element('//fieldset/legend')
         sleep(1)  # Wait one second to load the drop down

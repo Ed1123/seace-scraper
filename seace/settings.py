@@ -6,7 +6,6 @@
 #     https://docs.scrapy.org/en/latest/topics/settings.html
 #     https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
-import os
 
 from dotenv import load_dotenv
 
@@ -56,10 +55,9 @@ ROBOTSTXT_OBEY = True
 
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
-DOWNLOADER_MIDDLEWARES = {
-    # 'seace.middlewares.SeaceDownloaderMiddleware': 543,
-    'scrapy_selenium.SeleniumMiddleware': 800,
-}
+# DOWNLOADER_MIDDLEWARES = {
+#     # 'seace.middlewares.SeaceDownloaderMiddleware': 543,
+# }
 
 # Enable or disable extensions
 # See https://docs.scrapy.org/en/latest/topics/extensions.html
@@ -93,13 +91,3 @@ DOWNLOADER_MIDDLEWARES = {
 # HTTPCACHE_DIR = 'httpcache'
 # HTTPCACHE_IGNORE_HTTP_CODES = []
 # HTTPCACHE_STORAGE = 'scrapy.extensions.httpcache.FilesystemCacheStorage'
-
-# Selenium
-from webdriver_manager.chrome import ChromeDriverManager
-
-SELENIUM_DRIVER_NAME = 'chrome'
-SELENIUM_DRIVER_EXECUTABLE_PATH = ChromeDriverManager().install()
-if os.getenv('TEST_MODE'):
-    SELENIUM_DRIVER_ARGUMENTS = []
-else:
-    SELENIUM_DRIVER_ARGUMENTS = ['--headless']
