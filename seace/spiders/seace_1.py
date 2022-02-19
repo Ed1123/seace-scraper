@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 from time import sleep
 
+import pandas as pd
 import scrapy
 from scrapy.utils.conf import closest_scrapy_cfg
 from selenium import webdriver
@@ -49,12 +50,17 @@ class Seace1Spider(scrapy.Spider):
         self.click_element('//fieldset/legend')
         sleep(1)  # Wait one second to load the drop down
 
+        for date in pd.date_range(start='2021-11-01', end='2021-11-30'):
+            self.get_data_for_a_date(date)
+
+    def get_data_for_a_date(self, date: datetime):
         # Enter dates
-        self.fill_date(datetime(2022, 1, 6))
+        self.fill_date(date)
 
         self.fill_catpcha_and_search()
 
         # Click export to download the file
+        sleep(1)
         self.click_element('//*[@id="tbBuscador:idFormBuscarProceso:btnExportar"]')
 
     def get_captcha(self) -> bytes:
@@ -79,17 +85,28 @@ class Seace1Spider(scrapy.Spider):
                 # box = wait.until(EC.element_to_be_clickable((By.XPATH, xpath)))
                 box = self.driver.find_element_by_xpath(xpath)
                 box.click()
+                # Clear field before entering the input string
+                box.clear()
                 box.send_keys(input_str)
                 break
             except (StaleElementReferenceException, ElementNotInteractableException):
                 self.logger.debug(f'Trying to input date again. Retry: {i + 1}')
-                sleep(0.1)
+                sleep(0.5)
                 i += 1
 
     def click_element(self, xpath: str) -> None:
         self.driver.find_element_by_xpath(xpath).click()
 
     def fill_date(self, date: datetime) -> None:
+        # Click the dropdown and select the correct year
+        self.click_element(
+            '//*[@id="tbBuscador:idFormBuscarProceso:anioConvocatoria_label"]'
+        )
+        self.click_element(
+            f'//*[@id="tbBuscador:idFormBuscarProceso:anioConvocatoria_panel"]/div/ul/li[@data-label={date.year}]'
+        )
+
+        # Fill start and end date
         for xpath in [
             '//*[@id="tbBuscador:idFormBuscarProceso:dfechaInicio_input"]',
             '//*[@id="tbBuscador:idFormBuscarProceso:dfechaFin_input"]',
