@@ -50,8 +50,16 @@ class Seace1Spider(scrapy.Spider):
         self.click_element('//fieldset/legend')
         sleep(1)  # Wait one second to load the drop down
 
-        for date in pd.date_range(start='2021-11-01', end='2021-11-30'):
+        for date in self.get_date_range_parameter():
             self.get_data_for_a_date(date)
+
+    def get_date_range_parameter(self) -> pd.DatetimeIndex:
+        try:
+            return pd.date_range(start=self.start_date, end=self.end_date)
+        except AttributeError as e:
+            raise AttributeError('Must include parameters start_date and end_dated.')
+        except ValueError as e:
+            raise ValueError('Must provide date in the format \'YYYY-MM-DD\'.')
 
     def get_data_for_a_date(self, date: datetime):
         # Enter dates
