@@ -1,4 +1,5 @@
 import os
+from dataclasses import dataclass
 from datetime import datetime
 from time import sleep
 
@@ -25,6 +26,29 @@ def solve_captcha(captcha: bytes) -> str:
     with open(f'captchas/{now}.png', 'wb') as f:
         f.write(captcha)
     return input('Solve the captcha manually and paste it here: ')
+
+
+@dataclass
+class ExtraData:
+    cui: str
+    estado: str
+    fecha_registro_de_participantes: datetime
+    fecha_formulación_de_consultas_y_observaciones: datetime
+    fecha_absolución_de_consultas_y_observaciones: datetime
+    fecha_integración_de_las_bases: datetime
+    fecha_presentación_de_ofertas: datetime
+    fecha_evaluación_y_calificación: datetime
+    fecha_otorgamiento_de_la_buena_pro: datetime
+    postores: list[str]
+    consorcio: str
+    fecha_de_cambio_de_estado: datetime
+    estado_anterior: str
+    # cambio_de
+    # cambio_a
+    fecha_de_cambio_de_postor: datetime
+    postor_anterior: str
+    # cambio_de_postor_de
+    # cambio_de_postor_a
 
 
 class Seace1Spider(scrapy.Spider):
@@ -164,3 +188,11 @@ class Seace1Spider(scrapy.Spider):
             except TimeoutException:
                 # Else, the catpcha is solved and just break the infinite loop
                 break
+
+    def get_cui(self):
+        self.click_element('')
+
+    def get_extra_data(
+        self, descripción_objeto: str, date: datetime, objeto_contratación: str
+    ) -> ExtraData:
+        return ExtraData()
