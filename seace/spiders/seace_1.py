@@ -15,7 +15,7 @@ from selenium.common.exceptions import (
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support.wait import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
 
 
@@ -189,10 +189,23 @@ class Seace1Spider(scrapy.Spider):
                 # Else, the catpcha is solved and just break the infinite loop
                 break
 
-    def get_cui(self):
-        self.click_element('')
+    def get_cui(self) -> str:
+        self.click_element(
+            '//*[@id="tbBuscador:idFormBuscarProceso:dtProcesos:0:graCodCUI"]'
+        )
+        sleep(1)
+        cui = self.driver.find_elements_by_xpath(
+            '//*[@id="tbBuscador:idFormBuscarProceso:dataTableCodCUI_data"]/tr/td'
+        )[0].text
+        # Close CUI window
+        self.click_element(
+            '//*[@id="tbBuscador:idFormBuscarProceso:frmListaCodigoCUI"]/div[1]/a/span'
+        )
+        sleep(1)
+        return cui
 
     def get_extra_data(
         self, descripción_objeto: str, date: datetime, objeto_contratación: str
     ) -> ExtraData:
+        cui = self.get_cui()
         return ExtraData()
