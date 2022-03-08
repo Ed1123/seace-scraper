@@ -129,14 +129,17 @@ class Seace1Spider(scrapy.Spider):
     def click_element(self, xpath: str) -> None:
         self.driver.find_element_by_xpath(xpath).click()
 
-    def fill_date(self, date: datetime) -> None:
-        # Click the dropdown and select the correct year
+    def select_year(self, year: int) -> None:
+        '''Clicks the dropdown and select the year'''
         self.click_element(
             '//*[@id="tbBuscador:idFormBuscarProceso:anioConvocatoria_label"]'
         )
         self.click_element(
-            f'//*[@id="tbBuscador:idFormBuscarProceso:anioConvocatoria_panel"]/div/ul/li[@data-label={date.year}]'
+            f'//*[@id="tbBuscador:idFormBuscarProceso:anioConvocatoria_panel"]/div/ul/li[@data-label={year}]'
         )
+
+    def fill_date(self, date: datetime) -> None:
+        self.select_year(date.year)
 
         # Fill start and end date
         for xpath in [
@@ -204,8 +207,30 @@ class Seace1Spider(scrapy.Spider):
         sleep(1)
         return cui
 
+    def select_objeto_contratación(self, objeto_contratación: str) -> None:
+        '''Clicks the dropdown and select the objecto de contratación'''
+        self.click_element('//*[@id="tbBuscador:idFormBuscarProceso:j_idt41_label"]')
+        self.click_element(
+            f'//*[@id="tbBuscador:idFormBuscarProceso:j_idt41_panel"]/div/ul/li[@data-label="{objeto_contratación}"]'
+        )
+
     def get_extra_data(
         self, descripción_objeto: str, date: datetime, objeto_contratación: str
     ) -> ExtraData:
+        # Input data
+        self.fill_box(
+            '//*[@id="tbBuscador:idFormBuscarProceso:descripcionObjeto"]',
+            descripción_objeto,
+        )
+        self.select_year(date.year)
+        self.select_objeto_contratación(objeto_contratación)
+        # May be needed to input the full date and compare the full timpestamp after searching, just for multiple results.
+        self.fill_catpcha_and_search()
+
         cui = self.get_cui()
         return ExtraData()
+
+
+descripción_objeto = 'ADQUISICION DE SEMILLA DE AVENA FORRAJERA (AVENA SATIVA L.) VARIEDAD MANTARO 15 , CLASE NO CERTIFICADA PARA DZ - AYACUCHO'
+date = datetime.strptime('03/11/2021 23:48', '%d/%m/%Y %H:%M')
+objeto_contratación = 'Bien'
