@@ -167,7 +167,7 @@ class Seace1Spider(scrapy.Spider):
                 )
 
                 # Checking for the "bad captcha" message box
-                message_box = WebDriverWait(self.driver, 5).until(
+                message_box = WebDriverWait(self.driver, 180).until(
                     EC.visibility_of_element_located(
                         (By.XPATH, '//*[@id="frmMesajes:gPrincipal_container"]/div')
                     )
@@ -281,6 +281,11 @@ class Seace1Spider(scrapy.Spider):
         sleep(1)
 
         postores, consorcios = self.get_postores_consorcios()
+
+        # Click the return button to perform more searches
+        self.click_element(
+            '//*[@id="tbFicha:idFormFichaSeleccion"]/table[1]/tfoot/tr/td/div/button'
+        )
 
         return ExtraData(
             cui=cui,
