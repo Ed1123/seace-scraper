@@ -96,7 +96,7 @@ class Seace1Spider(scrapy.Spider):
         sleep(1)
         self.click_element('//*[@id="tbBuscador:idFormBuscarProceso:btnExportar"]')
 
-    def get_captcha(self) -> bytes:
+    def get_captcha(self) -> str:
         captcha_img = self.driver.find_element_by_xpath(
             '//*[@id="tbBuscador:idFormBuscarProceso:captchaImg"]'
         ).screenshot_as_png
@@ -166,8 +166,21 @@ class Seace1Spider(scrapy.Spider):
                     '//*[@id="tbBuscador:idFormBuscarProceso:btnBuscarSel"]'
                 )
 
-                # Checking for the "bad captcha" message box
-                message_box = WebDriverWait(self.driver, 180).until(
+                # Waiting for the grey box window to appear and dissipate
+                # Max of 10 minutes each
+                grey_box = '//div[contains(@id, "blocker")]'
+                WebDriverWait(self.driver, 600).until(
+                    EC.visibility_of_element_located((By.XPATH, grey_box))
+                )
+                WebDriverWait(self.driver, 600).until(
+                    EC.invisibility_of_element((By.XPATH, grey_box))
+                )
+
+                # Checking for the "bad captcha" message box. If it appears in 5 sec
+                # (after the grey box dissipated), the captcha wasn't solved and the loop
+                # will continue, else, it will raise a TimeoutException because the message
+                # box didn't appear indicating the captcha was solved.
+                message_box = WebDriverWait(self.driver, 5).until(
                     EC.visibility_of_element_located(
                         (By.XPATH, '//*[@id="frmMesajes:gPrincipal_container"]/div')
                     )
@@ -192,6 +205,7 @@ class Seace1Spider(scrapy.Spider):
             except TimeoutException:
                 # Else, the catpcha is solved and just break the infinite loop
                 break
+        # 1 sec for the results to finish loading
         sleep(1)
 
     def get_cui(self) -> str:
