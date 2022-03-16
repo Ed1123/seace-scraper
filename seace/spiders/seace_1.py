@@ -53,103 +53,7 @@ class ExtraData:
     # # cambio_de_postor_a
 
 
-class Seace1Spider(scrapy.Spider):
-    name = 'seace_1'
-
-    def start_requests(self):
-        options = webdriver.ChromeOptions()
-        if not os.getenv('TEST_MODE'):
-            options.add_argument('headless')
-        download_path = os.path.join(os.path.dirname(closest_scrapy_cfg()), 'output')
-        prefs = {'download.default_directory': download_path}
-        options.add_experimental_option('prefs', prefs)
-        self.driver = webdriver.Chrome(
-            executable_path=ChromeDriverManager().install(), chrome_options=options
-        )
-        self.driver.get(
-            'https://prodapp2.seace.gob.pe/seacebus-uiwd-pub/buscadorPublico/buscadorPublico.xhtml'
-        )
-        yield scrapy.Request(url='http://quotes.toscrape.com')
-
-    def parse(self, response):
-        # Click "Búsqueda avanzada"
-        self.click_element('//fieldset/legend')
-        sleep(1)  # Wait one second to load the drop down
-
-        for date in self.get_date_range_parameter():
-            self.get_data_for_a_date(date)
-
-    def get_date_range_parameter(self) -> pd.DatetimeIndex:
-        try:
-            return pd.date_range(start=self.start_date, end=self.end_date)
-        except AttributeError:
-            raise AttributeError('Must include parameters start_date and end_dated.')
-        except ValueError:
-            raise ValueError('Must provide date in the format \'YYYY-MM-DD\'.')
-
-    def get_data_for_a_date(self, date: datetime):
-        # Enter dates
-        self.fill_date(date)
-
-        self.fill_catpcha_and_search()
-
-        # Click export to download the file
-        sleep(1)
-        self.click_element('//*[@id="tbBuscador:idFormBuscarProceso:btnExportar"]')
-
-    def get_captcha(self) -> str:
-        captcha_img = self.driver.find_element_by_xpath(
-            '//*[@id="tbBuscador:idFormBuscarProceso:captchaImg"]'
-        ).screenshot_as_png
-        return captcha_img
-
-    def fill_box(self, xpath: str, input_str: str) -> None:
-        '''Fills an html element with the given input data'''
-        # wait = WebDriverWait(
-        #     self.driver,
-        #     10,
-        #     # poll_frequency=1,
-        #     # ignored_exceptions=[StaleElementReferenceException],
-        # )
-        i = 0
-        # WebDriverWait doesn't seem to work properly. As a workaround we're using
-        # a while True try statement
-        while True:
-            try:
-                # box = wait.until(EC.element_to_be_clickable((By.XPATH, xpath)))
-                box = self.driver.find_element_by_xpath(xpath)
-                box.click()
-                # Clear field before entering the input string
-                box.clear()
-                box.send_keys(input_str)
-                break
-            except (StaleElementReferenceException, ElementNotInteractableException):
-                self.logger.debug(f'Trying to input date again. Retry: {i + 1}')
-                sleep(0.5)
-                i += 1
-
-    def click_element(self, xpath: str) -> None:
-        self.driver.find_element_by_xpath(xpath).click()
-
-    def select_year(self, year: int) -> None:
-        '''Clicks the dropdown and select the year'''
-        self.click_element(
-            '//*[@id="tbBuscador:idFormBuscarProceso:anioConvocatoria_label"]'
-        )
-        self.click_element(
-            f'//*[@id="tbBuscador:idFormBuscarProceso:anioConvocatoria_panel"]/div/ul/li[@data-label={year}]'
-        )
-
-    def fill_date(self, date: datetime) -> None:
-        self.select_year(date.year)
-
-        # Fill start and end date
-        for xpath in [
-            '//*[@id="tbBuscador:idFormBuscarProceso:dfechaInicio_input"]',
-            '//*[@id="tbBuscador:idFormBuscarProceso:dfechaFin_input"]',
-        ]:
-            self.fill_box(xpath, date.strftime('%d/%m/%Y'))
-
+class SeaceScraper:
     def fill_catpcha_and_search(self) -> None:
         '''Solves the captcha, clicks search and retries if the captcha was incorrectly solved.'''
         while True:
@@ -212,10 +116,125 @@ class Seace1Spider(scrapy.Spider):
     def get_text(self, xpath: str) -> str:
         return self.driver.find_element_by_xpath(xpath).text
 
+    def get_captcha(self) -> str:
+        captcha_img = self.driver.find_element_by_xpath(
+            '//*[@id="tbBuscador:idFormBuscarProceso:captchaImg"]'
+        ).screenshot_as_png
+        return captcha_img
 
-class ExtraDataExtractor(Seace1Spider):
-    def __init__(self, driver: WebDriver, name=None, **kwargs):
-        super().__init__(name, **kwargs)
+    def fill_box(self, xpath: str, input_str: str) -> None:
+        '''Fills an html element with the given input data'''
+        # wait = WebDriverWait(
+        #     self.driver,
+        #     10,
+        #     # poll_frequency=1,
+        #     # ignored_exceptions=[StaleElementReferenceException],
+        # )
+        i = 0
+        # WebDriverWait doesn't seem to work properly. As a workaround we're using
+        # a while True try statement
+        while True:
+            try:
+                # box = wait.until(EC.element_to_be_clickable((By.XPATH, xpath)))
+                box = self.driver.find_element_by_xpath(xpath)
+                box.click()
+                # Clear field before entering the input string
+                box.clear()
+                box.send_keys(input_str)
+                break
+            except (StaleElementReferenceException, ElementNotInteractableException):
+                self.logger.debug(f'Trying to input date again. Retry: {i + 1}')
+                sleep(0.5)
+                i += 1
+
+    def click_element(self, xpath: str) -> None:
+        self.driver.find_element_by_xpath(xpath).click()
+
+    def select_year(self, year: int) -> None:
+        '''Clicks the dropdown and select the year'''
+        self.click_element(
+            '//*[@id="tbBuscador:idFormBuscarProceso:anioConvocatoria_label"]'
+        )
+        self.click_element(
+            f'//*[@id="tbBuscador:idFormBuscarProceso:anioConvocatoria_panel"]/div/ul/li[@data-label={year}]'
+        )
+
+
+class Seace1Spider(scrapy.Spider, SeaceScraper):
+    name = 'seace_1'
+
+    def start_requests(self):
+        options = webdriver.ChromeOptions()
+        if not os.getenv('TEST_MODE'):
+            options.add_argument('headless')
+        download_path = os.path.join(os.path.dirname(closest_scrapy_cfg()), 'output')
+        prefs = {'download.default_directory': download_path}
+        options.add_experimental_option('prefs', prefs)
+        self.driver = webdriver.Chrome(
+            executable_path=ChromeDriverManager().install(), chrome_options=options
+        )
+        self.driver.get(
+            'https://prodapp2.seace.gob.pe/seacebus-uiwd-pub/buscadorPublico/buscadorPublico.xhtml'
+        )
+        yield scrapy.Request(url='http://quotes.toscrape.com')
+
+    def parse(self, response):
+        def get_column_in_row(id: int):
+            return row.find_element_by_xpath(f'./td[{id}]').text
+
+        # Click "Búsqueda avanzada"
+        self.click_element('//fieldset/legend')
+        sleep(1)  # Wait one second to load the drop down
+
+        for date in self.get_date_range_parameter():
+            rows = self.get_data_for_a_date(date)
+            for row in rows:
+                yield {
+                    'Nombre o Sigla de la Entidad': get_column_in_row(2),
+                    'Fecha y Hora de Publicacion': get_column_in_row(3),
+                    'Nomenclatura': get_column_in_row(4),
+                    'Objeto de Contratación': get_column_in_row(6),
+                    'Descripción de Objeto': get_column_in_row(7),
+                    'Valor Referencial / Valor Estimado': get_column_in_row(10),
+                    'Moneda': get_column_in_row(11),
+                }
+        # Close browser after finishing the scrapping
+        self.driver.close()
+
+    def get_date_range_parameter(self) -> pd.DatetimeIndex:
+        try:
+            return pd.date_range(start=self.start_date, end=self.end_date)
+        except AttributeError:
+            raise AttributeError('Must include parameters start_date and end_dated.')
+        except ValueError:
+            raise ValueError('Must provide date in the format \'YYYY-MM-DD\'.')
+
+    def get_data_for_a_date(self, date: datetime):
+        # Enter dates
+        self.fill_date(date)
+
+        self.fill_catpcha_and_search()
+
+        # Click export to download the file
+        sleep(1)
+        return self.driver.find_elements_by_xpath(
+            '//*[@id="tbBuscador:idFormBuscarProceso:dtProcesos_data"]/tr'
+        )
+        self.click_element('//*[@id="tbBuscador:idFormBuscarProceso:btnExportar"]')
+
+    def fill_date(self, date: datetime) -> None:
+        self.select_year(date.year)
+
+        # Fill start and end date
+        for xpath in [
+            '//*[@id="tbBuscador:idFormBuscarProceso:dfechaInicio_input"]',
+            '//*[@id="tbBuscador:idFormBuscarProceso:dfechaFin_input"]',
+        ]:
+            self.fill_box(xpath, date.strftime('%d/%m/%Y'))
+
+
+class ExtraDataExtractor(SeaceScraper):
+    def __init__(self, driver: WebDriver):
         self.driver = driver
 
     def get_cui(self) -> str:
