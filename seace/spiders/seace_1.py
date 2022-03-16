@@ -15,6 +15,7 @@ from selenium.common.exceptions import (
 )
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
+from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
@@ -81,9 +82,9 @@ class Seace1Spider(scrapy.Spider):
     def get_date_range_parameter(self) -> pd.DatetimeIndex:
         try:
             return pd.date_range(start=self.start_date, end=self.end_date)
-        except AttributeError as e:
+        except AttributeError:
             raise AttributeError('Must include parameters start_date and end_dated.')
-        except ValueError as e:
+        except ValueError:
             raise ValueError('Must provide date in the format \'YYYY-MM-DD\'.')
 
     def get_data_for_a_date(self, date: datetime):
@@ -208,6 +209,15 @@ class Seace1Spider(scrapy.Spider):
         # 1 sec for the results to finish loading
         sleep(1)
 
+    def get_text(self, xpath: str) -> str:
+        return self.driver.find_element_by_xpath(xpath).text
+
+
+class ExtraDataExtractor(Seace1Spider):
+    def __init__(self, driver: WebDriver, name=None, **kwargs):
+        super().__init__(name, **kwargs)
+        self.driver = driver
+
     def get_cui(self) -> str:
         self.click_element(
             '//*[@id="tbBuscador:idFormBuscarProceso:dtProcesos:0:graCodCUI"]'
@@ -225,13 +235,12 @@ class Seace1Spider(scrapy.Spider):
 
     def select_objeto_contratación(self, objeto_contratación: str) -> None:
         '''Clicks the dropdown and select the objecto de contratación'''
-        self.click_element('//*[@id="tbBuscador:idFormBuscarProceso:j_idt41_label"]')
         self.click_element(
-            f'//*[@id="tbBuscador:idFormBuscarProceso:j_idt41_panel"]/div/ul/li[@data-label="{objeto_contratación}"]'
+            '/html/body/div[3]/div/div[1]/div[1]/div[1]/form/table[1]/tbody/tr[1]/td/table/tbody/tr[2]/td[2]/div/label'
         )
-
-    def get_text(self, xpath: str) -> str:
-        return self.driver.find_element_by_xpath(xpath).text
+        self.click_element(
+            f'/html/body/div[7]/div/ul/li[@data-label="{objeto_contratación}"]'
+        )
 
     def get_datetime(self, xpath: str) -> datetime:
         date_text = self.driver.find_element_by_xpath(xpath).text
@@ -266,7 +275,8 @@ class Seace1Spider(scrapy.Spider):
         descripción_objeto = 'ADQUISICION DE SEMILLA DE AVENA FORRAJERA (AVENA SATIVA L.) VARIEDAD MANTARO 15 , CLASE NO CERTIFICADA PARA DZ - AYACUCHO'
         date = datetime.strptime('03/11/2021 23:48', '%d/%m/%Y %H:%M')
         objeto_contratación = 'Bien'
-        self.get_extra_data(descripción_objeto, date, objeto_contratación)
+        extra_data_extractor = ExtraDataExtractor(self.driver)
+        extra_data_extractor.get_extra_data(descripción_objeto, date, objeto_contratación)
         '''
         # Input data
         self.fill_box(
@@ -296,12 +306,7 @@ class Seace1Spider(scrapy.Spider):
 
         postores, consorcios = self.get_postores_consorcios()
 
-        # Click the return button to perform more searches
-        self.click_element(
-            '//*[@id="tbFicha:idFormFichaSeleccion"]/table[1]/tfoot/tr/td/div/button'
-        )
-
-        return ExtraData(
+        extra_data = ExtraData(
             cui=cui,
             estado=self.get_text(
                 '//*[@id="tbFicha:idGridLstItems_content"]/table/tbody/tr[1]/td/table[2]/tbody/tr[2]/td[8]'
@@ -330,3 +335,10 @@ class Seace1Spider(scrapy.Spider):
             postores=postores,
             consorcios=consorcios,
         )
+
+        # Click the return button to perform more searches
+        self.click_element(
+            '//*[@id="tbFicha:idFormFichaSeleccion"]/table[1]/tfoot/tr/td/div/button'
+        )
+
+        return extra_data
