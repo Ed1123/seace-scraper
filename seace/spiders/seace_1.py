@@ -6,6 +6,7 @@ from typing import Optional
 
 import pandas as pd
 import scrapy
+from attr import asdict
 from scrapy.utils.conf import closest_scrapy_cfg
 from selenium import webdriver
 from selenium.common.exceptions import (
@@ -54,6 +55,20 @@ class ExtraData:
 
 
 class SeaceScraper:
+    def click_search(self):
+        # Click the "Buscar" button
+        self.click_element('//*[@id="tbBuscador:idFormBuscarProceso:btnBuscarSel"]')
+
+        # Waiting for the grey box window to appear and dissipate
+        # Max of 10 minutes each
+        grey_box = '//div[contains(@id, "blocker")]'
+        WebDriverWait(self.driver, 600).until(
+            EC.visibility_of_element_located((By.XPATH, grey_box))
+        )
+        WebDriverWait(self.driver, 600).until(
+            EC.invisibility_of_element((By.XPATH, grey_box))
+        )
+
     def fill_catpcha_and_search(self) -> None:
         '''Solves the captcha, clicks search and retries if the captcha was incorrectly solved.'''
         while True:
@@ -65,21 +80,7 @@ class SeaceScraper:
                     '//*[@id="tbBuscador:idFormBuscarProceso:codigoCaptcha"]',
                     captcha_str,
                 )
-
-                # Click the "Buscar" button
-                self.click_element(
-                    '//*[@id="tbBuscador:idFormBuscarProceso:btnBuscarSel"]'
-                )
-
-                # Waiting for the grey box window to appear and dissipate
-                # Max of 10 minutes each
-                grey_box = '//div[contains(@id, "blocker")]'
-                WebDriverWait(self.driver, 600).until(
-                    EC.visibility_of_element_located((By.XPATH, grey_box))
-                )
-                WebDriverWait(self.driver, 600).until(
-                    EC.invisibility_of_element((By.XPATH, grey_box))
-                )
+                self.click_search()
 
                 # Checking for the "bad captcha" message box. If it appears in 5 sec
                 # (after the grey box dissipated), the captcha wasn't solved and the loop
@@ -182,6 +183,8 @@ class Seace1Spider(scrapy.Spider, SeaceScraper):
         def get_column_in_row(id: int):
             return row.find_element_by_xpath(f'./td[{id}]').text
 
+        extra_data_extractor = ExtraDataExtractor(self.driver)
+
         # Click "Búsqueda avanzada"
         self.click_element('//fieldset/legend')
         sleep(1)  # Wait one second to load the drop down
@@ -189,7 +192,7 @@ class Seace1Spider(scrapy.Spider, SeaceScraper):
         for date in self.get_date_range_parameter():
             rows = self.get_data_for_a_date(date)
             for row in rows:
-                yield {
+                data = {
                     'Nombre o Sigla de la Entidad': get_column_in_row(2),
                     'Fecha y Hora de Publicacion': get_column_in_row(3),
                     'Nomenclatura': get_column_in_row(4),
@@ -198,6 +201,15 @@ class Seace1Spider(scrapy.Spider, SeaceScraper):
                     'Valor Referencial / Valor Estimado': get_column_in_row(10),
                     'Moneda': get_column_in_row(11),
                 }
+                extra_data = extra_data_extractor.get_extra_data(
+                    data['Descripción de Objeto'],
+                    datetime.strptime(
+                        data['Fecha y Hora de Publicacion'], '%d/%m/%Y %H:%M'
+                    ),
+                    data['Objeto de Contratación'],
+                )
+                yield data | asdict(extra_data)
+
         # Close browser after finishing the scrapping
         self.driver.close()
 
@@ -258,7 +270,7 @@ class ExtraDataExtractor(SeaceScraper):
             '/html/body/div[3]/div/div[1]/div[1]/div[1]/form/table[1]/tbody/tr[1]/td/table/tbody/tr[2]/td[2]/div/label'
         )
         self.click_element(
-            f'/html/body/div[7]/div/ul/li[@data-label="{objeto_contratación}"]'
+            f'/html/body/div[15]/div/ul/li[@data-label="{objeto_contratación}"]'
         )
 
     def get_datetime(self, xpath: str) -> datetime:
