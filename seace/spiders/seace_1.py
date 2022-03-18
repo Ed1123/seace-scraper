@@ -118,7 +118,7 @@ class SeaceScraper:
     def get_text(self, xpath: str) -> str:
         return self.driver.find_element_by_xpath(xpath).text  # type: ignore
 
-    def get_captcha(self) -> str:
+    def get_captcha(self) -> bytes:
         captcha_img = self.driver.find_element_by_xpath(  # type: ignore
             '//*[@id="tbBuscador:idFormBuscarProceso:captchaImg"]'
         ).screenshot_as_png
