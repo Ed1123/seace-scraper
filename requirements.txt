@@ -55,3 +55,4 @@ w3lib==1.22.0
 webdriver-manager==3.5.2
 wsproto==1.0.0
 zope.interface==5.4.0
+image==1.5.33

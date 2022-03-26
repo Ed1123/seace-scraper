@@ -16,7 +16,21 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
+# from gimpysolver import captchaSolverRPA
 
+# to captcha solver
+import cv2
+import json
+from json import JSONEncoder
+import numpy as np
+import requests
+from PIL import Image
+
+class NumpyArrayEncoder(JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return JSONEncoder.default(self, obj)
 
 def solve_captcha(captcha: bytes) -> str:
     '''Gets a captcha as bytes and returns the solution as a string'''
@@ -24,7 +38,31 @@ def solve_captcha(captcha: bytes) -> str:
     now = datetime.now().isoformat().replace(':', '-')
     with open(f'captchas/{now}.png', 'wb') as f:
         f.write(captcha)
-    return input('Solve the captcha manually and paste it here: ')
+    # create captcha object
+    spyderRun_path = os.getcwd()
+    spyderRun_path =    spyderRun_path.replace("\\",'/')
+    
+    path_img = '{}/captchas/{}.png'.format(spyderRun_path,now)
+    
+    # Only resize now, the next model load with the screenshoot size
+    img = Image.open(path_img)
+    if  img.size!=(380,85):
+        img = img.resize([380,85])
+        img.save(path_img)
+    # read img
+    imgArray = cv2.imread(path_img,cv2.IMREAD_GRAYSCALE)
+    json_body_array = {"array":imgArray}
+    # Json to send
+    encode_numpy_data = json.dumps(json_body_array, cls=NumpyArrayEncoder)
+    
+    print('iniciando request')
+    sleep(5)
+    url_post = 'http://ec2-35-175-140-195.compute-1.amazonaws.com:8050/predict/'
+    
+    r = requests.post(url_post,json=encode_numpy_data)
+    
+    myCaptcha = r.json()['predict']
+    return myCaptcha
 
 
 class Seace1Spider(scrapy.Spider):
@@ -120,6 +158,7 @@ class Seace1Spider(scrapy.Spider):
                 # Solve captcha
                 captcha_img = self.get_captcha()
                 captcha_str = solve_captcha(captcha_img)
+                print("Captcha solved: ", captcha_str)
                 self.fill_box(
                     '//*[@id="tbBuscador:idFormBuscarProceso:codigoCaptcha"]',
                     captcha_str,
