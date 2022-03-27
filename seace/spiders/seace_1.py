@@ -179,9 +179,6 @@ class Seace1Spider(scrapy.Spider, SeaceScraper):
         options = webdriver.ChromeOptions()  # type: ignore
         if not os.getenv('TEST_MODE'):
             options.add_argument('headless')
-        download_path = os.path.join(os.path.dirname(closest_scrapy_cfg()), 'output')
-        prefs = {'download.default_directory': download_path}
-        options.add_experimental_option('prefs', prefs)
         self.driver = webdriver.Chrome(  # type: ignore
             executable_path=ChromeDriverManager().install(), chrome_options=options
         )
