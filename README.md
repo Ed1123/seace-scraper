@@ -23,10 +23,17 @@ rm google-chrome-stable_current_amd64.deb
 ```
 
 ## Usage
+### Seace 1
 ```bash
 scrapy crawl seace_1 -a start_date='yyyy-mm-dd' -a end_date='yyyy-mm-dd'
 ```
-If you want an csv output you can use:
+### Seace 2
+```bash
+scrapy crawl seace_2 -a filepath='parameters.csv'
+```
+
+
+If you want an csv output you can include "-O seace.csv" at the end of the command. Eg:
 ```bash
 scrapy crawl seace_1 -a start_date='yyyy-mm-dd' -a end_date='yyyy-mm-dd' -O seace.csv
 ```
