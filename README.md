@@ -31,8 +31,13 @@ scrapy crawl seace_1 -a start_date='yyyy-mm-dd' -a end_date='yyyy-mm-dd'
 ```bash
 scrapy crawl seace_2 -a filepath='parameters.csv'
 ```
+The format of the `parameters.csv` file should be as follows:
+```csv
+"Descripción del objeto","Fecha de publicación","Tipo de objeto"
+"ADQUISICION DE ... DZ - AYACUCHO","03/11/2021 23:48","Bien"
+```
 
-
+### CSV Output
 If you want an csv output you can include "-O seace.csv" at the end of the command. Eg:
 ```bash
 scrapy crawl seace_1 -a start_date='yyyy-mm-dd' -a end_date='yyyy-mm-dd' -O seace.csv
