@@ -1,7 +1,7 @@
 import os
 from dataclasses import asdict, dataclass
 from datetime import datetime
-from time import sleep
+from time import sleep, time
 from typing import Optional
 
 import pandas as pd
@@ -29,6 +29,10 @@ from json import JSONEncoder
 import numpy as np
 import requests
 from PIL import Image
+import logging
+from inputimeout import inputimeout, TimeoutOccurred
+
+
 
 class NumpyArrayEncoder(JSONEncoder):
     def default(self, obj):
@@ -45,28 +49,53 @@ def solve_captcha(captcha: bytes) -> str:
     # create captcha object
     spyderRun_path = os.getcwd()
     spyderRun_path =    spyderRun_path.replace("\\",'/')
-    
+
     path_img = '{}/captchas/{}.png'.format(spyderRun_path,now)
     
-    # Only resize now, the next model load with the screenshoot size
-    img = Image.open(path_img)
-    if  img.size!=(380,85):
-        img = img.resize([380,85])
-        img.save(path_img)
-    # read img
-    imgArray = cv2.imread(path_img,cv2.IMREAD_GRAYSCALE)
-    json_body_array = {"array":imgArray}
-    # Json to send
-    encode_numpy_data = json.dumps(json_body_array, cls=NumpyArrayEncoder)
+    logger = logging.getLogger(__name__)
+    try:
+        
+        # Only resize now, the next model load with the screenshoot size
+        img = Image.open(path_img)
+        if  img.size!=(200,35):
+            img = img.resize([200,35])
+            img.save(path_img)
+        # read img
+        imgArray = cv2.imread(path_img,cv2.IMREAD_GRAYSCALE)
+        json_body_array = {"array":imgArray}
+        # Json to send
+        encode_numpy_data = json.dumps(json_body_array, cls=NumpyArrayEncoder)
     
-    print('iniciando request')
-    sleep(5)
-    url_post = 'http://ec2-35-175-140-195.compute-1.amazonaws.com:8050/predict/'
-    
-    r = requests.post(url_post,json=encode_numpy_data)
-    
-    myCaptcha = r.json()['predict']
+        print('iniciando request')
+        sleep(5)
+        # url_post = 'http://ec2-35-175-140-195.compute-1.amazonaws.com:8050/predict/'
+        url_post = 'http://127.0.0.1:5000/predict'
+        r = requests.post(url_post,json=encode_numpy_data)
+        if r.status_code==200:
+            myCaptcha = r.json()['predict']
+            logger.info('Catpcha solution for file >>{}<< : {}'.format(path_img,myCaptcha))
+            #rename img with the solution to compare further
+        else:
+            logger.error('Error with server, try img process >>{}<< and status code received: {}'.format(path_img,r.status_code))
+        del img
+        new_path_img = path_img.replace(now,myCaptcha)
+        os.rename(path_img,new_path_img)
+    except Exception as expt:
+        print('Server error ocurred when try to resolve captcha: {}'.format(expt))
+        logger.exception('Server error ocurred when try to resolve captcha: {}'.format(expt))
+        try:
+            myCaptcha = inputimeout(prompt='Input captcha resolver from {} :\n'.format(path_img,timeout=20))
+        except TimeoutOccurred:
+            logger.error('Error try get manual resolve captcha {}'.format(TimeoutOccurred))
+            logger.warning('myCaptcha is None assigment')
+            myCaptcha = ''
+            return myCaptcha
+        #rename img with the solution to compare further
+        new_path_img = path_img.replace(now,myCaptcha)
+        os.rename(path_img,new_path_img)
     return myCaptcha
+        
+    
 
 
 @dataclass
