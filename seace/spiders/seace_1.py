@@ -52,7 +52,7 @@ def solve_captcha(captcha: bytes) -> str:
 
     path_img = '{}/captchas/{}.png'.format(spyderRun_path,now)
     
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger(__name__ +'.'+solve_captcha.__name__)
     try:
         
         # Only resize now, the next model load with the screenshoot size
@@ -69,7 +69,7 @@ def solve_captcha(captcha: bytes) -> str:
         print('iniciando request')
         sleep(5)
         # url_post = 'http://ec2-35-175-140-195.compute-1.amazonaws.com:8050/predict/'
-        url_post = 'http://127.0.0.1:5000/predict'
+        url_post = 'http://127.0.0.1:8050/predict'
         r = requests.post(url_post,json=encode_numpy_data)
         if r.status_code==200:
             myCaptcha = r.json()['predict']
